@@ -20,16 +20,15 @@ let users = [];
 let sockets = {};
 
 let Robinhood;
-(async () => {
-  Robinhood = await login();
-})();
 
 app.use(compression({}));
 app.use(bodyParser.json());
 app.use(cors());
 app.use(express["static"](__dirname + "/../client"));
 
-app.get("/", async function(req, res) {});
+app.post("/login", async function(req, res) {
+  Robinhood = await login(req.body);
+});
 
 app.post("/orders", async (req, res) => {
   const resl = await Robinhood.orders(req.body);
@@ -87,10 +86,9 @@ io.on("connection", socket => {
         const resl = await Robinhood.nonzero_positions();
         let arr = await mapLimit(resl.results, 1, async order => {
           let ticker = await Robinhood.url(order.instrument);
-      
+
           return { symbol: ticker.symbol, ...order };
         });
-
 
         socket.emit("action", {
           type: "POSITIONS",
