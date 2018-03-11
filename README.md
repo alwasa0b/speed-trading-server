@@ -1,3 +1,10 @@
+## Usage
+```bash
+npm install
+node index.js
+```
+
+
 # speed-trading-server
 Quick and dirty UI to trade on robinhood.
 
