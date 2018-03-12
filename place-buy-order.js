@@ -8,6 +8,7 @@ module.exports = async (
     symbol,
     placeSellOrder = false,
     placestopLoss = false,
+    customPrice = false,
     sellPrice,
     stopLossPrice
   }
@@ -26,18 +27,22 @@ module.exports = async (
   //       symbol: "AAPL"
   //     }
   try {
-    const quote = await Robinhood.quote_data(symbol);
+    let quote;
+
+    if (!customPrice) quote = await Robinhood.quote_data(symbol);
+    
     let options = {
       type: "limit",
       quantity,
-      bid_price: bid_price || quote.results[0].last_trade_price,
+      bid_price: customPrice ? bid_price : quote.results[0].last_trade_price,
       instrument: { url: instrument, symbol }
     };
+    
 
     const orderPlacedRes = await Robinhood.place_buy_order(options);
 
     if (placeSellOrder) {
-      console.log("sell " + sellPrice)
+      console.log("sell " + sellPrice);
       excutedOrder = setInterval(async () => {
         let order = await Robinhood.url(orderPlacedRes.url);
         if (order.state === "filled") {
