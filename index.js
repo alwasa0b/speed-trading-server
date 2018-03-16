@@ -28,6 +28,7 @@ app.use(express["static"](__dirname + "/../client"));
 
 app.post("/login", async function(req, res) {
   Robinhood = await login(req.body);
+  return res.send();
 });
 
 app.post("/orders", async (req, res) => {
