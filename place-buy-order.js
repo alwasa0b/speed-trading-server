@@ -33,7 +33,7 @@ module.exports = async (
         if (order.state === "filled") {
           console.log("order filled");
           console.log("placing sell and stop orders");
-          
+
           if (placeSellOrder)
             await Robinhood.place_sell_order({
               ...options,
@@ -42,10 +42,11 @@ module.exports = async (
 
           if (placeStopLoss)
             await Robinhood.place_sell_order({
+              instrument: { url: instrument, symbol },
               quantity,
               stop_price: stopLossPrice,
               type: "market",
-              trigger: 'stop'
+              trigger: "stop"
             });
 
           clearInterval(excutedOrder);
