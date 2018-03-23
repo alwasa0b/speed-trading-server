@@ -8,6 +8,7 @@ const login = require("./util");
 const bodyParser = require("body-parser");
 const placeBuyOrder = require("./place-buy-order");
 const placeSellOrder = require("./place-sell-order");
+const placeStopLossOrder = require("./place-stop-loss-order");
 const chunk = require("./chunk");
 const mapLimit = require("promise-map-limit");
 
@@ -37,7 +38,7 @@ app.post("/orders", async (req, res) => {
 });
 app.post("/cancel_orders", async (req, res) => {
   const resl = await Robinhood.cancel_order(req.body);
-  return res.send(resl.results);
+  return res.send(resl);
 });
 
 app.post("/positions", async (req, res) => {
@@ -45,9 +46,14 @@ app.post("/positions", async (req, res) => {
   return res.send(resl.results);
 });
 
+app.post("/place_stop_loss_order", async (req, res) => {
+  const placedOrder = await placeStopLossOrder(Robinhood, req.body);
+  return res.send(placedOrder);
+});
+
 app.post("/place_buy_order", async (req, res) => {
   const placedOrder = await placeBuyOrder(Robinhood, req.body);
-  res.send(placedOrder);
+  return res.send(placedOrder);
 });
 
 app.post("/place_sell_order", async (req, res) => {
@@ -58,12 +64,14 @@ app.post("/place_sell_order", async (req, res) => {
     quantity: req.body.quantity,
     bid_price: req.body.price || quote.results[0].last_trade_price
   });
-  res.send(placedOrder);
+  return res.send(placedOrder);
 });
 
 let update_price_handle;
 let update_position_handle;
 let update_order_handle;
+
+//todo: refactor to make less calls to RB
 io.on("connection", socket => {
   socket.on("action", action => {
     if (action.type === "SERVER/UPDATE_PRICE") {
@@ -87,8 +95,8 @@ io.on("connection", socket => {
         const resl = await Robinhood.nonzero_positions();
         let arr = await mapLimit(resl.results, 1, async order => {
           let ticker = await Robinhood.url(order.instrument);
-
-          return { symbol: ticker.symbol, ...order };
+          let price = await Robinhood.quote_data(ticker.symbol);
+          return { symbol: ticker.symbol, cur_price: price.results[0].last_trade_price, ...order };
         });
 
         socket.emit("action", {
