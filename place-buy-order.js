@@ -3,31 +3,31 @@ module.exports = async (
   {
     instrument,
     quantity,
-    bid_price,
+    buy_price,
     symbol,
-    placeSellOrder = false,
-    placeStopLoss = false,
-    customPrice = false,
-    sellPrice,
-    stopLossPrice
+    buy_order_type,
+    sell_order_type,
+    sell_price
   }
 ) => {
   try {
     let quote, excutedOrder;
-
-    if (!customPrice) quote = await Robinhood.quote_data(symbol);
+    const bid_type = buy_order_type === "bid";
+    if (bid_type) quote = await Robinhood.quote_data(symbol);
 
     let options = {
       type: "limit",
       quantity,
-      bid_price: customPrice ? bid_price : quote.results[0].last_trade_price,
+      bid_price: bid_type ? quote.results[0].last_trade_price : buy_price,
       instrument: { url: instrument, symbol }
     };
+
+    console.log("buy order options", options);
 
     const orderPlacedRes = await Robinhood.place_buy_order(options);
     console.log(`id: ${orderPlacedRes.id}, buy: ${orderPlacedRes.price}`);
 
-    if (placeSellOrder || placeStopLoss) {
+    if (sell_order_type !== "none") {
       excutedOrder = setInterval(async () => {
         let order = await Robinhood.url(orderPlacedRes.url);
 
@@ -40,22 +40,22 @@ module.exports = async (
         if (order.state === "filled") {
           console.log("order filled..");
 
-          if (placeSellOrder) {
+          if (sell_order_type === "limit") {
             console.log("placing sell order...");
             console.log(`id: ${orderPlacedRes.id}, sell: ${sellPrice}`);
             await Robinhood.place_sell_order({
               ...options,
-              bid_price: sellPrice
+              bid_price: sell_price
             });
           }
 
-          if (placeStopLoss) {
+          if (sell_order_type === "stop") {
             console.log("placing stop loss...");
             console.log(`id: ${orderPlacedRes.id}, stop: ${stopLossPrice}`);
             await Robinhood.place_sell_order({
               instrument: { url: instrument, symbol },
               quantity,
-              stop_price: stopLossPrice,
+              stop_price: sell_price,
               type: "market",
               trigger: "stop"
             });
