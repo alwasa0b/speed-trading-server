@@ -27,9 +27,9 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use(express["static"](__dirname + "/../client"));
 
-app.post("/login", async function (req, res) {
+app.post("/login", async function(req, res) {
   Robinhood = await login(req.body);
-  return res.send(Robinhood);
+  return res.send({ loggedin: true });
 });
 
 app.post("/orders", async (req, res) => {
@@ -90,7 +90,11 @@ io.on("connection", socket => {
         let arr = await mapLimit(resl.results, 1, async order => {
           let ticker = await Robinhood.url(order.instrument);
           let price = await Robinhood.quote_data(ticker.symbol);
-          return { symbol: ticker.symbol, cur_price: price.results[0].last_trade_price, ...order };
+          return {
+            symbol: ticker.symbol,
+            cur_price: price.results[0].last_trade_price,
+            ...order
+          };
         });
 
         socket.emit("action", {
