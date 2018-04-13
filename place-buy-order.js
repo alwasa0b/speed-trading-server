@@ -10,15 +10,18 @@ module.exports = async (
     sell_price
   }
 ) => {
+  let quote, excutedOrder;
+
   try {
-    let quote, excutedOrder;
     const bid_type = buy_order_type === "bid";
     if (bid_type) quote = await Robinhood.quote_data(symbol);
 
     let options = {
       type: "limit",
       quantity,
-      bid_price: bid_type ? quote.results[0].last_trade_price : buy_price,
+      bid_price: parseFloat(
+        bid_type ? quote.results[0].last_trade_price : buy_price
+      ).toFixed(2),
       instrument: { url: instrument, symbol }
     };
 
