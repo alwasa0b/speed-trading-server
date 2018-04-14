@@ -43,9 +43,11 @@ module.exports = async (
         if (order.state === "filled") {
           console.log("order filled..");
 
+          sell_price = parseFloat(sell_price).toFixed(2);
+
           if (sell_order_type === "limit") {
             console.log("placing sell order...");
-            console.log(`id: ${orderPlacedRes.id}, sell: ${sellPrice}`);
+            console.log(`id: ${orderPlacedRes.id}, sell: ${sell_price}`);
             await Robinhood.place_sell_order({
               ...options,
               bid_price: sell_price
@@ -54,7 +56,7 @@ module.exports = async (
 
           if (sell_order_type === "stop") {
             console.log("placing stop loss...");
-            console.log(`id: ${orderPlacedRes.id}, stop: ${stopLossPrice}`);
+            console.log(`id: ${orderPlacedRes.id}, stop: ${sell_price}`);
             await Robinhood.place_sell_order({
               instrument: { url: instrument, symbol },
               quantity,

@@ -9,7 +9,6 @@ const bodyParser = require("body-parser");
 const placeBuyOrder = require("./place-buy-order");
 const placeSellOrder = require("./place-sell-order");
 const placeStopLossOrder = require("./place-stop-loss-order");
-const chunk = require("./chunk");
 const mapLimit = require("promise-map-limit");
 
 let app = express();
@@ -17,8 +16,6 @@ let cors = require("cors");
 let server = http.Server(app);
 let io = new SocketIO(server);
 let port = process.env.PORT || 3001;
-let users = [];
-let sockets = {};
 
 let Robinhood;
 
@@ -27,7 +24,7 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use(express["static"](__dirname + "/../client"));
 
-app.post("/login", async function(req, res) {
+app.post("/login", async (req, res) => {
   Robinhood = await login(req.body);
   return res.send({ loggedin: true });
 });
@@ -109,7 +106,10 @@ io.on("connection", socket => {
       update_order_handle = setInterval(async () => {
         let options = { updated_at: getDate() };
         let orders = await Robinhood.orders(options);
-        let tickers = await chunk(orders.results, Robinhood.url);
+        let tickers = await await mapLimit(orders.results, 1, async order => {
+          let ticker = await Robinhood.url(order.instrument);
+          return { symbol: ticker.symbol, ...order };
+        });
 
         socket.emit("action", {
           type: "ORDERS_UPDATED",
@@ -122,6 +122,16 @@ io.on("connection", socket => {
   socket.on("disconnect", () => {
     socket.broadcast.emit("userDisconnect");
   });
+});
+
+app.post("/logout", async (req, res) => {
+  if (update_price_handle != null) clearInterval(update_price_handle);
+  if (update_position_handle != null) clearInterval(update_position_handle);
+  if (update_order_handle != null) clearInterval(update_order_handle);
+
+  Robinhood = await Robinhood.expire_token();
+
+  return res.send({ loggedout: true });
 });
 
 server.listen(port, () => {

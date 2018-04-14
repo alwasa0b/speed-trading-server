@@ -19,9 +19,7 @@ module.exports = ({ username, password }) => {
         password
       },
       () => {
-        // promisfy all functions
         Object.keys(Robinhood).forEach(key => {
-          // console.log('key', key);
           const origFn = Robinhood[key];
           Robinhood[key] = retryPromise((...callArgs) => {
             return new Promise((resolve, reject) => {
